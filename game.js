@@ -1,3 +1,28 @@
+/* --- Start Button Fix (safe, idempotent) --- */
+(function bindStartButtonOnce(){
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", bindStartButtonOnce, { once: true });
+    return;
+  }
+  var btn = document.getElementById("btnStartGame");
+  if (!btn) return;
+  if (btn.dataset.bound === "1") return;
+  btn.dataset.bound = "1";
+
+  btn.addEventListener("click", function(ev){
+    try { ev.preventDefault(); } catch(e){}
+    if (typeof startFromMenu === "function") {
+      try { startFromMenu(); } catch(e){ if (console && console.warn) console.warn("startFromMenu error:", e); }
+    }
+    var overlay = document.getElementById("overlay") || document.querySelector(".overlay");
+    if (overlay && overlay.classList) {
+      overlay.classList.add("hidden");
+      try { overlay.style.pointerEvents = "none"; } catch(e){}
+    }
+  });
+})();
+/* --- End: Start Button Fix --- */
+
 /* Tiny Territories – Fase 0 (realtime, met animatie-expansie)
    - Overlay setup (naam/kleur/map), unieke kleuren
    - Canvas + resize, recentering
