@@ -1,0 +1,33 @@
+--- game.js
++++ game.js
+@@ -24,6 +24,18 @@
+   }
+ })();
+ /* --- End Start Button Fix v3 --- */
++
++// --- Inline start helper to avoid double-invocation from multiple listeners ---
++window.__startInvoked = false;
++window.startFromMenuFromButton = function(ev){
++  try { if (ev && ev.preventDefault) ev.preventDefault(); } catch(e){}
++  if (window.__startInvoked) return false;
++  window.__startInvoked = true;
++  try { startFromMenu(); } finally {}
++  return false;
++};
++
++
+ 
+ /* Tiny Territories – Fase 0 (realtime, met animatie-expansie)
+    - Overlay setup (naam/kleur/map), unieke kleuren
+
+--- index.html
++++ index.html
+@@ -210,7 +210,7 @@
+       </label>
+ 
+ 
+-      <button id="btnStartGame" class="btn primary">Start Spel</button>
++      <button id="btnStartGame" class="btn primary" type="button" onclick="startFromMenuFromButton(event); return false;">Start Spel</button>
+     </div>
+   </div>
+ 

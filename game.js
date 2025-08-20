@@ -25,6 +25,18 @@
 })();
 /* --- End Start Button Fix v3 --- */
 
+// --- Inline start helper to avoid double-invocation from multiple listeners ---
+window.__startInvoked = false;
+window.startFromMenuFromButton = function(ev){
+  try { if (ev && ev.preventDefault) ev.preventDefault(); } catch(e){}
+  if (window.__startInvoked) return false;
+  window.__startInvoked = true;
+  try { startFromMenu(); } finally {}
+  return false;
+};
+
+
+
 /* Tiny Territories – Fase 0 (realtime, met animatie-expansie)
    - Overlay setup (naam/kleur/map), unieke kleuren
    - Canvas + resize, recentering
