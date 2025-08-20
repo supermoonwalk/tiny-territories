@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="dark light" />
+  <title>Tiny Territories</title>
+
+  <!-- ALLE CSS INLINE -->
+  <style>
+    /* ==== Basis ==== */
+    *{box-sizing:border-box}
+    html,body{
+      height:100%;margin:0;background:#0b1220;color:#e8eef9;
+      font:12px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+      overflow:hidden;
+    }
+    #game{position:fixed;inset:0;width:100vw;height:100vh;display:block;background:#0b1220}
+
+    /* ==== HUD onderaan (compact) ==== */
+    .hud{
+      position:fixed;left:max(8px,env(safe-area-inset-left));
+      right:max(8px,env(safe-area-inset-right));
+      bottom:max(8px,env(safe-area-inset-bottom));z-index:20;
+      display:flex;flex-direction:column;gap:8px;max-width:760px;margin:0 auto;
+      padding:10px;border-radius:12px;background:rgba(12,14,20,.88);
+      backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.08);
+      box-shadow:0 8px 20px rgba(0,0,0,.32)
+    }
+    #stats{font-weight:700;color:#fff}
+    #hint{color:#cbd3e1}
+    .progress{position:relative;width:100%;height:6px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden}
+    .progress .fill{height:100%;width:0%;background:linear-gradient(90deg,#66e4a9,#7de3ff)}
+    .progress .pct{position:absolute;right:6px;top:-16px;font:700 10px/1 system-ui;color:#cfd6e4}
+    .controls-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+    .budget-label{color:#cfd6e4;font-weight:700}
+    input[type="range"]{-webkit-appearance:none;appearance:none;height:6px;border-radius:999px;background:rgba(255,255,255,.18);outline:none;flex:1 1 220px}
+    input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:16px;height:16px;border-radius:50%;background:#66e4a9;border:2px solid #ffffff22;box-shadow:0 1px 4px rgba(0,0,0,.35)}
+    input[type="range"]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:#66e4a9;border:2px solid #ffffff22}
+    .btn,button{cursor:pointer;padding:6px 10px;border-radius:9px;background:rgba(255,255,255,.08);color:#fff;border:1px solid rgba(255,255,255,.12);font-weight:700}
+    .btn.primary{background:#66e4a9;color:#0b1321;border-color:#66e4a9}
+    .btn:disabled,button:disabled{opacity:.55;cursor:default}
+
+    /* ==== Leaderboard rechtsboven (zeer compact) ==== */
+    .leaderboard{
+      position:fixed;top:max(8px,env(safe-area-inset-top));right:max(8px,env(safe-area-inset-right));
+      z-index:25;width:min(200px,34vw);max-height:min(56vh,380px);overflow:auto;
+      padding:6px;border-radius:10px;background:rgba(12,14,20,.88);
+      border:1px solid rgba(255,255,255,.08);box-shadow:0 6px 18px rgba(0,0,0,.3)
+    }
+    /* RANK | LOGO | SIZE  */
+    .leaderboard .lb-row{
+      display:grid;grid-template-columns:16px 18px 1fr;
+      align-items:center;gap:6px;padding:3px 6px;margin-bottom:4px;
+      border-radius:8px;background:rgba(255,255,255,.06);min-height:22px
+    }
+    .leaderboard .lb-row:last-child{margin-bottom:0}
+    .leaderboard .lb-rank{
+      width:16px;height:16px;border-radius:5px;background:rgba(255,255,255,.10);
+      display:grid;place-items:center;font:700 9px/1 system-ui;color:#fff
+    }
+    .leaderboard .lb-logo{width:18px;height:18px;display:block}
+    .leaderboard .lb-size{justify-self:end;font:700 10px/1 system-ui;color:#fff;opacity:.95}
+    .leaderboard .lb-me{background:rgba(102,228,169,.18);border:1px solid rgba(102,228,169,.35)}
+
+    /* ==== Overlays ==== */
+    .overlay{position:fixed;inset:0;z-index:30;display:grid;place-items:center;background:rgba(0,0,0,.45);backdrop-filter:blur(2px)}
+    .overlay.hidden{display:none}
+    .dialog{width:min(520px,92vw);padding:16px;border-radius:14px;background:#1a2232;border:1px solid rgba(255,255,255,.12);box-shadow:0 12px 32px rgba(0,0,0,.42)}
+    .dialog h2{margin:0 0 10px}
+    .dialog p{margin:0 0 12px;color:#cfd8e6}
+    .field{display:grid;gap:6px;margin:8px 0}
+    .field span{color:#cfd8e6}
+    .field input[type="text"],.field select{width:100%;padding:8px 10px;border-radius:10px;background:#121a28;color:#fff;border:1px solid rgba(255,255,255,.15)}
+    .color-row{display:flex;gap:8px;align-items:center}
+    .color-row input[type="color"]{-webkit-appearance:none;appearance:none;width:36px;height:28px;border:none;padding:0;background:none}
+    .color-row input[type="color"]::-webkit-color-swatch-wrapper{padding:0}
+    .color-row input[type="color"]::-webkit-color-swatch{border:2px solid rgba(255,255,255,.25);border-radius:8px}
+
+    /* Extra klein scherm */
+    @media (max-width:420px){
+      html,body{font-size:11px}
+      .leaderboard{width:36vw;min-width:160px}
+      .leaderboard .lb-row{gap:5px;padding:3px;min-height:20px}
+      .leaderboard .lb-rank{width:14px;height:14px;font-size:8px}
+      .leaderboard .lb-logo{width:16px;height:16px}
+      .leaderboard .lb-size{font-size:9px}
+    }
+
+    /* === Zwevende bevestigknop === */
+    .confirm-btn{
+      position:fixed;
+      z-index:26;                 /* boven leaderboard (25), onder overlays (30) */
+      width:34px;height:34px;
+      border-radius:50%;
+      border:1px solid rgba(255,255,255,.12);
+      background:#2bb673;         /* standaard = neutral */
+      color:#071a12;
+      display:grid;place-items:center;
+      font:800 16px/1 system-ui;
+      box-shadow:0 8px 20px rgba(0,0,0,.35);
+      transform:translate(-50%,-140%); /* iets boven het gekozen vakje */
+      cursor:pointer;
+    }
+    .confirm-btn.attack{ background:#ff5a5a; color:#fff; }
+    .confirm-btn.hidden{ display:none; }
+    .confirm-btn:active{ transform:translate(-50%,-140%) scale(.96); }
+
+    @media (max-width:420px){
+      .confirm-btn{ width:30px;height:30px; font-size:14px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Canvas -->
+  <canvas id="game"></canvas>
+
+  <!-- Bevestigknop voor expand/attack -->
+  <button id="confirmBtn" class="confirm-btn hidden" aria-label="Bevestig actie"></button>
+
+  <!-- HUD onderaan -->
+  <div id="hud" class="hud">
+    <div id="stats">Welkom bij Tiny Territories!</div>
+    <div id="hint">Tik een landtile om je startpositie te kiezen.</div>
+
+    <div class="progress">
+      <div id="progressFill" class="fill"></div>
+      <div id="progressText" class="pct">0%</div>
+    </div>
+
+    <div class="controls-row">
+      <label class="budget-label" for="budgetRange">
+        Budget: <span id="budgetPct">50%</span>
+      </label>
+      <input id="budgetRange" type="range" min="5" max="95" value="50" />
+      <button id="resetBtn" class="btn" disabled>Reset</button>
+      <button id="spawnBtn" class="btn" disabled>Spawn Bots</button>
+    </div>
+  </div>
+
+  <!-- Leaderboard -->
+  <div id="leaderboard" class="leaderboard"></div>
+
+  <!-- Win overlay -->
+  <div id="winOverlay" class="overlay hidden">
+    <div class="dialog">
+      <h2>🎉 Je hebt de wereld veroverd!</h2>
+      <p>Goed gedaan. Zin in nog een ronde?</p>
+      <button id="btnPlayAgain" class="btn primary">Speel opnieuw</button>
+    </div>
+  </div>
+
+  <!-- Setup overlay -->
+  <div id="setupOverlay" class="overlay">
+    <div class="dialog">
+      <h2>Spel Instellen</h2>
+
+      <label class="field">
+        <span>Naam:</span>
+        <input id="inpName" type="text" placeholder="Speler" maxlength="16" />
+      </label>
+
+      <label class="field">
+        <span>Kleur:</span>
+        <div class="color-row">
+          <input id="inpColor" type="color" value="#66e4a9" />
+          <button id="btnRandomize" class="btn">🎲</button>
+        </div>
+      </label>
+
+      <label class="field">
+        <span>Map type:</span>
+        <select id="inpMap">
+          <option value="pangaea">Pangaea</option>
+          <option value="continents">Continents</option>
+          <option value="islands">Islands</option>
+          <option value="coast">Coast</option>
+        </select>
+      </label>
+      <label class="field">
+        <span>Bot density:</span>
+        <select id="inpDensity">
+          <option value="low">Low</option>
+          <option value="medium" selected>Medium</option>
+          <option value="high">High</option>
+        </select>
+      </label>
+
+
+      <button id="btnStartGame" class="btn primary">Start Spel</button>
+    </div>
+  </div>
+
+  <!-- Belangrijk: defer zodat DOM klaar is -->
+  <script src="game.js" defer></script>
+</body>
+</html>
